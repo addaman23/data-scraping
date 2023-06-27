@@ -1,0 +1,64 @@
+import requests
+from bs4 import BeautifulSoup
+import csv
+
+# URL of the wishlist
+url = "https://wishlist.webflow.com"
+
+# Function to scrape the wishlist items
+def scrape_wishlist(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        wishlist_items = []
+
+        # Find all the wishlist item elements
+        items = soup.find_all("div", class_="js-idea")
+
+        for item in items:
+            # Extract the relevant information from each wishlist item
+            item_id = item.get("data-id")
+            item_name = item.find(class_="js-idea-title").text.strip()
+            item_votes = item.find(class_="js-votes-count").text.strip()
+            item_description = item.find(class_="js-idea-description").text.strip()
+            item_date = item.find(class_="js-idea-created").text.strip()
+            item_status = item.find(class_="js-idea-status").text.strip()
+            item_url = item.find(class_="js-idea-link").get("href")
+
+            # Add the wishlist item to the list
+            wishlist_items.append(
+                {
+                    "ID": item_id,
+                    "Name": item_name,
+                    "Votes": item_votes,
+                    "Description": item_description,
+                    "Date": item_date,
+                    "Status": item_status,
+                    "URL": item_url,
+                }
+            )
+
+        return wishlist_items
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error scraping wishlist: {str(e)}")
+        return []
+
+# Scrape the wishlist items
+wishlist_items = scrape_wishlist(url)
+
+# Define the CSV file path
+csv_file = "wishlist_items.csv"
+
+# Write the wishlist items to a CSV file
+with open(csv_file, "w", newline="", encoding="utf-8") as file:
+    writer = csv.DictWriter(
+        file,
+        fieldnames=["ID", "Name", "Votes", "Description", "Date", "Status", "URL"],
+    )
+    writer.writeheader()
+    writer.writerows(wishlist_items)
+
+print(f"Wishlist items scraped and saved to {csv_file}.")
